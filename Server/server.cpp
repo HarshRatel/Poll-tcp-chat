@@ -12,6 +12,7 @@
 
 #define POLL_SIZE 2048
 #define PORT 6666
+
 int set_nonblock(int fd)
 {
     int flags;
@@ -23,6 +24,16 @@ int set_nonblock(int fd)
     flags = 1;
     return ioctl(fd, FIOBIO, &flags);
 #endif
+}
+
+int SendToAll(const std::set<int> & slaveSockets, char* buffer)
+{
+	for(auto iter = slaveSockets.begin(); iter != slaveSockets.end(); ++iter)
+	{
+		send(*iter, buffer, sizeof(buffer), MSG_NOSIGNAL);
+	}
+
+	return 0;
 }
 
 int main(int argc, char** argv)
@@ -65,8 +76,6 @@ int main(int argc, char** argv)
     polls[0].fd = masterSocket;
     polls[0].events = POLLIN;
 
-
-
     while(true)
     {
         unsigned int index = 1;
@@ -90,7 +99,7 @@ int main(int argc, char** argv)
                 {
                     static char buffer[1024];;
                     int recvSize = recv(polls[i].fd, buffer, 1024, MSG_NOSIGNAL);
-                    std::cout << buffer << std::endl;
+
                     if((recvSize == 0) && (errno != EAGAIN))
                     {
                         shutdown(polls[i].fd, SHUT_RDWR);
@@ -99,7 +108,7 @@ int main(int argc, char** argv)
                     }
                     else if(recvSize > 0)
                     {
-                        send(polls[i].fd, buffer, recvSize, MSG_NOSIGNAL);
+                    	SendToAll(slaveSockets, buffer);
                     }
                 }
                 else

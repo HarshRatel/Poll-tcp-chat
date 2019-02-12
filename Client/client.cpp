@@ -18,10 +18,12 @@ int GetMessage(int sock)
 	while(1)
 	{
 		recvSize = recv(sock, buffer, 1024, MSG_NOSIGNAL);
-		if (recvSize == -1)
+		if (recvSize < 0)
 		{
 		   shutdown(sock, SHUT_RDWR);
 		   close(sock);
+
+		   throw std::runtime_error("Server connection refused");
 		}
 
 		if (recvSize > 0)
