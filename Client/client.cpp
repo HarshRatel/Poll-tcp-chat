@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -7,6 +5,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <thread>
+
+#include <iostream>
 
 #define PORT 6666
 
@@ -33,14 +33,18 @@ int GetMessage(int sock)
 	return 0;
 }
 
-int SendInput(int sock)
+int SendInput(int sock, const std::string & userName)
 {
+	std::string buffer;
+
 	while(1)
-	{	char buffer[1024];
+	{
+		buffer = "";
 
 		std::cin >> buffer;
+		buffer = userName + ' ' + buffer;
 
-		send(sock, buffer, sizeof(buffer), MSG_NOSIGNAL);
+		send(sock, buffer.c_str(), 1024, MSG_NOSIGNAL);
 	}
 
 	return 0;
@@ -50,6 +54,10 @@ int main(int argc, char **argv)
 {
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     std::cout << "Started" << std::endl;
+    std::cout << "Enter user name" << std::endl;
+
+    std::string userName;
+    std::cin >> userName;
 
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
@@ -60,7 +68,7 @@ int main(int argc, char **argv)
     	throw std::runtime_error("connect() error");
 
     std::thread reading(GetMessage, std::ref(sock));
-    std::thread sending(SendInput, std::ref(sock));
+    std::thread sending(SendInput, std::ref(sock), std::ref(userName));
 
     reading.join();
     sending.join();

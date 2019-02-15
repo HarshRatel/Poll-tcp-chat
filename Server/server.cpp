@@ -1,7 +1,3 @@
-#include <iostream>
-#include <algorithm>
-#include <set>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -10,10 +6,14 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include <iostream>
+#include <algorithm>
+#include <set>
+
 #define POLL_SIZE 2048
 #define PORT 6666
 
-int set_nonblock(int fd)
+int SetNonblock(int fd)
 {
     int flags;
 #if defined(O_NONBLOCK)
@@ -30,7 +30,7 @@ int SendToAll(const std::set<int> & slaveSockets, char* buffer)
 {
 	for(auto iter = slaveSockets.begin(); iter != slaveSockets.end(); ++iter)
 	{
-		send(*iter, buffer, sizeof(buffer), MSG_NOSIGNAL);
+		send(*iter, buffer, 1024, MSG_NOSIGNAL);
 	}
 
 	return 0;
@@ -49,7 +49,6 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	// Forcefully attaching socket to the port 8080
 	if (setsockopt(masterSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
 												  &opt, sizeof(opt)))
 	{
@@ -58,7 +57,7 @@ int main(int argc, char** argv)
 	}
 	sockAddr.sin_family = AF_INET;
 	sockAddr.sin_addr.s_addr = INADDR_ANY;
-	sockAddr.sin_port = htons( PORT );
+	sockAddr.sin_port = htons(PORT);
 
 	if (bind(masterSocket, (struct sockaddr *)&sockAddr,
 								 sizeof(sockAddr))<0)
@@ -67,7 +66,7 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-    set_nonblock(masterSocket);
+    SetNonblock(masterSocket);
 
     listen(masterSocket, SOMAXCONN);
 
@@ -79,6 +78,7 @@ int main(int argc, char** argv)
     while(true)
     {
         unsigned int index = 1;
+
         for(auto iter = slaveSockets.begin();
                     iter != slaveSockets.end();
                     ++iter)
@@ -114,11 +114,10 @@ int main(int argc, char** argv)
                 else
                 {
                     int slaveSocket = accept(masterSocket, 0, 0);
-                    set_nonblock(slaveSocket);
+                    SetNonblock(slaveSocket);
                     slaveSockets.insert(slaveSocket);
                 }
             }
         }
     }
 }
-
